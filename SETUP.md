@@ -29,6 +29,7 @@ If it loads with no signal, the tablet is ready. If it does not, open it once mo
 
 - The list shows everyone. Tap a name or its big button to clock in; the button turns green and shows the time. Tap again to clock out.
 - **Add new name** next to the search box adds someone without going into admin.
+- The small number next to Admin is the page version, for example `v1.01`.
 - Admin is the small underlined link at the top left, PIN `1234` to start with. There you can change the clock name, add, edit and remove people, change the PIN, and delete everything.
 - Change the PIN from the default on a device that the group will use.
 
@@ -51,9 +52,9 @@ How it works:
 
 To publish a change:
 
-1. Replace `index.html` in the GitHub repo (Add file, Upload files, drag it in, Commit changes).
-2. Bump the version line near the top of `index.html`: `var APP_VERSION = '2026-11-25.1'` becomes `'2026-11-25.2'`, and so on. Without this the tablets have no way to tell that anything changed.
-3. If `sw.js` itself changed, also bump `const CACHE = 'clock-in-page-v1'` to `v2`.
+1. Open `index.html` on GitHub, click the pencil, select all, paste the new file, Commit changes. Editing in place works; the upload page does not always.
+2. Bump the version line near the top of `index.html`: `var APP_VERSION = '1.00'` becomes `'1.01'`, then `'1.02'` and so on. The number shown next to Admin on every tablet is read from that line, always displayed as x.xx, so it is the one thing to trust when checking whether a device is current.
+3. If `sw.js` itself changed, also bump `const CACHE = 'clock-in-page-v2'` to `v3`.
 4. Wait about a minute for GitHub Pages, then open the page twice on the tablet, or wait for the hourly check.
 
 ## 6. If a tablet looks stuck on an old version
