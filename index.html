@@ -433,6 +433,7 @@
 
   var STORE_KEY = 'timeclock.v1';
   var DEFAULT_PIN = '1234';
+  var APP_VERSION = '2026-11-25.1';
   var DEFAULT_TITLE = 'Friends of Telford Town Park';
 
   var state = loadState();
@@ -1421,6 +1422,22 @@
       navigator.serviceWorker.register('sw.js').catch(function () {});
     });
   }
+
+  /* Pick up a newer page when there is a connection. The records are in
+     localStorage, so replacing the page never touches the clocked hours. */
+  function checkForNewVersion() {
+    if (typeof navigator === 'undefined' || navigator.onLine === false) return;
+    if (!overlayEl.hidden || !addOverlayEl.hidden) return;  /* never reload mid admin */
+    fetch('index.html', { cache: 'no-store' }).then(function (res) {
+      return res && res.ok ? res.text() : '';
+    }).then(function (text) {
+      if (!text) return;
+      var match = text.match(/APP_VERSION = '([^']+)'/);
+      if (match && match[1] !== APP_VERSION) location.reload();
+    }).catch(function () {});
+  }
+
+  if (typeof setInterval === 'function') setInterval(checkForNewVersion, 3600000);
 
   /* exposed for automated tests (harmless in the browser) */
   window.__timeclock = {
