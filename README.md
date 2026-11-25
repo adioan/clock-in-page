@@ -40,12 +40,13 @@ In the browser on the device, under `localStorage` key `timeclock.v1`. Nothing i
 | `sw.js` | Service worker, so the page opens with no signal |
 | `manifest.webmanifest` | Name, colours and icon for "Add to Home screen" |
 | `icon.svg` | The icon |
+| `SETUP.md` | Operator instructions: install, update, troubleshoot |
 
 ## Updating
 
-1. Replace `index.html`.
-2. Change `clock-in-page-v1` in `sw.js` to `v2`, `v3` and so on, otherwise devices keep serving the old page.
-3. Commit. Pages rebuilds in about a minute. Reload on the tablet twice: once to fetch, once from the new cache.
+The page updates itself on the devices. When it is opened with a connection, the service worker stores a fresh copy in the background and the next open shows it; a page left open all day also checks once an hour. With no connection the stored copy keeps working and the hours are untouched, because they live in the device's storage under the site address.
+
+To publish a change: replace `index.html`, bump `var APP_VERSION` near the top of it, and commit. If `sw.js` changed too, bump `clock-in-page-v1` to the next number. Full operator instructions, including installing on a tablet and what to do when a device looks stale, are in [SETUP.md](SETUP.md).
 
 ## Notes
 
