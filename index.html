@@ -46,6 +46,14 @@
 
   /* header */
   .headrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .headleft { display: flex; align-items: center; gap: 10px; }
+  .version {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    color: var(--muted);
+  }
   .clock {
     margin: 0;
     font-family: var(--mono);
@@ -298,7 +306,10 @@
 <div class="wrap">
   <header>
     <div class="headrow">
-      <button class="linkbtn" id="adminBtn" type="button">Admin</button>
+      <div class="headleft">
+        <button class="linkbtn" id="adminBtn" type="button">Admin</button>
+        <span class="version" id="appVersion">v1.00</span>
+      </div>
       <p class="clock"><span id="nowDate"></span> &nbsp; <span id="nowTime">--:--:--</span></p>
     </div>
     <h1 id="pageTitle">Friends of Telford Town <em>Park</em></h1>
@@ -433,7 +444,7 @@
 
   var STORE_KEY = 'timeclock.v1';
   var DEFAULT_PIN = '1234';
-  var APP_VERSION = '2026-11-25.1';
+  var APP_VERSION = '1.00';
   var DEFAULT_TITLE = 'Friends of Telford Town Park';
 
   var state = loadState();
@@ -533,6 +544,12 @@
     if (out.normalize) out = out.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     return out.toLowerCase().replace(/\s+/g, ' ').trim();
   }
+  /* Always shown as x.xx, whatever number is written in APP_VERSION */
+  function formatVersion(value) {
+    var num = parseFloat(value);
+    return isFinite(num) ? num.toFixed(2) : String(value);
+  }
+
   /* Round a length of time to the nearest quarter hour, so 2h34m is 2.5 and
      1h08m is 1.25. A half quarter (7.5 minutes) rounds up. */
   function quarterHours(ms) { return Math.round(ms / 900000) / 4; }
@@ -1408,6 +1425,7 @@
 
   /* ------------------------------------------------------------------ start */
 
+  document.getElementById('appVersion').textContent = 'v' + formatVersion(APP_VERSION);
   renderTitle();
   tickClock();
   setInterval(tickClock, 1000);
