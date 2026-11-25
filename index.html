@@ -1,0 +1,1443 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#fffee8">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Friends of Telford Town Park</title>
+<style>
+  :root {
+    --paper: #fffee8;
+    --ink: #151515;
+    --muted: #4d4d44;
+    --chip: #e2e2d3;
+    --orange: #ffa94a;
+    --coral: #ff6b4a;
+    --note: #ffe2b8;
+    --green: #2f7a4f;
+    --serif: Georgia, "Times New Roman", Times, serif;
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 17px;
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+    overscroll-behavior: none;
+  }
+
+  .wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 24px 18px 28px;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* header */
+  .headrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .clock {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: .06em;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  h1 {
+    font-family: var(--serif);
+    font-size: clamp(30px, 6.4vw, 42px);
+    line-height: 1.1;
+    letter-spacing: -.01em;
+    margin: 10px 0 8px;
+    text-wrap: balance;
+  }
+  h1 em { font-style: italic; }
+  .lead { margin: 0 0 18px; color: var(--muted); font-size: 15px; }
+  .lead.credit { text-align: right; }
+
+  /* search stays in reach while the list scrolls */
+  .findbar { position: sticky; top: 0; z-index: 5; background: var(--paper); padding: 6px 0 14px; }
+  .searchrow { display: flex; align-items: stretch; gap: 8px; }
+  .search {
+    flex: 1 1 150px;
+    min-width: 0;
+    font: inherit;
+    font-size: 18px;
+    padding: 13px 15px;
+    color: var(--ink);
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    border-radius: 12px;
+    outline: none;
+    appearance: none;
+  }
+  .search:focus { outline: 3px solid var(--orange); outline-offset: 2px; }
+
+  /* name list */
+  .card { border: 2px solid var(--ink); border-radius: 14px; background: var(--paper); }
+  .card.pad { padding: 16px 18px; }
+  .card-top { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
+  .rule { flex: 1; margin: 0; border: 0; border-top: 2px solid var(--ink); }
+
+  .chip {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--chip);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .chip.coral { background: var(--coral); }
+  .chip.orange { background: var(--orange); }
+
+  .people { list-style: none; margin: 0; padding: 0; }
+  .person-row { border-top: 1px solid var(--chip); }
+  .person-row:first-child { border-top: 0; }
+  .person {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px 12px;
+    padding: 10px 16px;
+  }
+  .person-name {
+    flex: 1 1 120px;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    padding: 0;
+    font: inherit;
+    font-size: 19px;
+    font-weight: 700;
+    color: inherit;
+    text-align: left;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    overflow-wrap: anywhere;
+  }
+  .person-name:active { text-decoration: underline; }
+  .controls { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+  .action {
+    font: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    min-height: 52px;
+    min-width: 208px;
+    padding: 13px 18px;
+    text-align: center;
+    color: var(--ink);
+    background: var(--orange);
+    border: 2px solid var(--ink);
+    border-radius: 10px;
+    cursor: pointer;
+    touch-action: manipulation;
+    white-space: nowrap;
+  }
+  .action:active { transform: translateY(1px); }
+  .action.in { background: var(--green); border-color: var(--green); color: #fff; }
+  .intime {
+    display: inline-flex;
+    align-items: center;
+    min-height: 50px;
+    padding: 12px 13px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    color: var(--ink);
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    border-radius: 10px;
+    white-space: nowrap;
+  }
+  .listempty { padding: 20px 16px; color: var(--muted); font-size: 15px; }
+
+  /* footer */
+  .linkbtn {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--ink);
+    background: none;
+    border: 0;
+    padding: 8px 2px;
+    text-decoration: underline;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  /* toast */
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 70px;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: max-content;
+    max-width: min(94vw, 560px);
+    padding: 12px 16px;
+    background: var(--ink);
+    color: var(--paper);
+    border-radius: 12px;
+    font-size: 15px;
+    z-index: 40;
+  }
+  .toast-text { flex: 1; }
+  .toast-undo {
+    font: inherit;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--paper);
+    background: none;
+    border: 0;
+    padding: 6px 2px;
+    text-decoration: underline;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  /* admin */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    overflow: auto;
+    padding: 20px 18px 48px;
+    background: var(--paper);
+    -webkit-overflow-scrolling: touch;
+  }
+  .overlay.center { display: flex; align-items: center; justify-content: center; padding: 18px; }
+  .modal { width: 100%; max-width: 430px; display: flex; flex-direction: column; gap: 14px; }
+  .sheet { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+  .sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .sheet-head h2 { font-family: var(--serif); font-size: 26px; margin: 0; letter-spacing: -.01em; }
+  h3 { font-family: var(--serif); font-size: 21px; margin: 0 0 4px; letter-spacing: -.01em; }
+  .card.pad p { margin: 0; color: var(--muted); font-size: 15px; }
+  .card.pad > * + * { margin-top: 10px; }
+
+  .field {
+    width: 100%;
+    font: inherit;
+    font-size: 16px;
+    padding: 11px 13px;
+    color: var(--ink);
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    border-radius: 10px;
+    outline: none;
+    resize: vertical;
+  }
+  .field:focus { outline: 3px solid var(--orange); outline-offset: 2px; }
+
+  .btn {
+    font: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 11px 16px;
+    background: var(--ink);
+    color: #fff;
+    border: 2px solid var(--ink);
+    border-radius: 10px;
+    cursor: pointer;
+    touch-action: manipulation;
+    white-space: nowrap;
+  }
+  .btn.ghost { background: var(--paper); color: var(--ink); }
+  .btn.small { padding: 7px 12px; font-size: 13px; }
+  .btn.coral { background: var(--coral); color: var(--ink); }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .row > .grow { flex: 1; min-width: 150px; }
+
+  .list { display: flex; flex-direction: column; }
+  .admin-person { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--chip); }
+  .admin-person:first-child { border-top: 0; }
+  .admin-person .name { flex: 1; font-size: 16px; font-weight: 700; overflow-wrap: anywhere; }
+  .admin-person .field { flex: 1; min-width: 0; }
+
+  .msg {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    color: var(--ink);
+    min-height: 1.1em;
+  }
+  .msg.bad { display: inline-block; background: var(--coral); border-radius: 6px; padding: 2px 8px; }
+  .stats { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .note { background: var(--note); border: 2px solid var(--ink); border-radius: 12px; padding: 12px 14px; font-size: 15px; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="headrow">
+      <button class="linkbtn" id="adminBtn" type="button">Admin</button>
+      <p class="clock"><span id="nowDate"></span> &nbsp; <span id="nowTime">--:--:--</span></p>
+    </div>
+    <h1 id="pageTitle">Friends of Telford Town <em>Park</em></h1>
+    <p class="lead credit">Made with <span aria-hidden="true">&#10084;&#65039;</span> by Adrian N</p>
+  </header>
+
+  <div class="findbar">
+    <div class="searchrow">
+      <input id="search" class="search" type="search" placeholder="Search name" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Search name">
+      <button class="btn" id="addNameBtn" type="button">Add new name</button>
+    </div>
+  </div>
+
+  <section class="card" aria-label="Names">
+    <div class="card-top">
+      <span class="chip">Team</span>
+      <hr class="rule">
+      <span class="chip" id="teamCount">0</span>
+    </div>
+    <ul class="people" id="peopleList"></ul>
+  </section>
+
+</div>
+
+<div class="toast" id="toast" role="status" hidden>
+  <span class="toast-text" id="toastText"></span>
+  <button class="toast-undo" id="toastUndo" type="button">Undo</button>
+</div>
+
+<div class="overlay center" id="addOverlay" hidden>
+  <div class="modal">
+    <div class="sheet-head">
+      <h2>Add new name</h2>
+      <button class="btn ghost small" id="addClose" type="button">Close</button>
+    </div>
+    <div class="card pad">
+      <p>The name goes straight onto the clock list.</p>
+      <input class="field" id="quickName" type="text" maxlength="60" autocomplete="off" spellcheck="false" placeholder="Full name">
+      <div class="row">
+        <button class="btn" id="quickAdd" type="button">Add to list</button>
+      </div>
+      <p class="msg" id="quickMsg"></p>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="adminOverlay" hidden>
+  <div class="sheet">
+    <div class="sheet-head">
+      <h2>Admin</h2>
+      <button class="btn ghost small" id="adminClose" type="button">Close</button>
+    </div>
+
+    <div class="card pad" id="lockView">
+      <h3>Locked</h3>
+      <p>Enter the admin PIN to carry on.</p>
+      <div class="row">
+        <input class="field grow" id="pinInput" type="password" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="PIN">
+        <button class="btn" id="pinOk" type="button">Unlock</button>
+      </div>
+      <p class="msg bad" id="pinErr" hidden>Wrong PIN</p>
+      <p class="stats">Default PIN is 1234. You can change it below.</p>
+    </div>
+
+    <div id="adminBody" hidden>
+      <div class="card pad">
+        <h3>Clock name</h3>
+        <p>This is the name at the top of the clock screen.</p>
+        <div class="row">
+          <input class="field grow" id="clockName" type="text" maxlength="60" placeholder="Friends of Telford Town Park">
+          <button class="btn" id="saveName" type="button">Save name</button>
+        </div>
+        <p class="msg" id="nameMsg"></p>
+      </div>
+
+      <div class="card pad">
+        <h3>People</h3>
+        <p>Add a name, or paste a list with one name per line.</p>
+        <textarea class="field" id="newNames" rows="3" placeholder="One name per line"></textarea>
+        <div class="row">
+          <button class="btn" id="addBtn" type="button">Add to list</button>
+          <span class="stats" id="counts"></span>
+        </div>
+        <p class="msg" id="peopleMsg"></p>
+        <div class="list" id="adminPeople"></div>
+      </div>
+
+      <div class="card pad">
+        <h3>Export</h3>
+        <label class="stats" for="exportPeriod">Period</label>
+        <select class="field" id="exportPeriod">
+          <option value="all">All time</option>
+          <option value="today">Today</option>
+          <option value="week">Past 7 days</option>
+          <option value="month">Past 30 days</option>
+          <option value="year">This year</option>
+        </select>
+        <div class="row">
+          <button class="btn" id="exportXlsx" type="button">Export Excel (.xlsx)</button>
+          <button class="btn ghost" id="exportCsv" type="button">Export CSV</button>
+        </div>
+      </div>
+
+      <div class="card pad">
+        <h3>Admin PIN</h3>
+        <p>Use 4 to 12 digits.</p>
+        <div class="row">
+          <input class="field grow" id="newPin" type="password" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="New PIN">
+          <input class="field grow" id="newPin2" type="password" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="Repeat new PIN">
+        </div>
+        <div class="row">
+          <button class="btn" id="savePin" type="button">Save PIN</button>
+        </div>
+        <p class="msg" id="pinMsg"></p>
+      </div>
+
+      <div class="card pad">
+        <h3>Danger zone</h3>
+        <p class="note">Deleting all entries cannot be undone. Export first if you need the history.</p>
+        <div class="row">
+          <button class="btn coral" id="wipeBtn" type="button">Delete all entries</button>
+        </div>
+        <p class="msg" id="wipeMsg"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var STORE_KEY = 'timeclock.v1';
+  var DEFAULT_PIN = '1234';
+  var DEFAULT_TITLE = 'Friends of Telford Town Park';
+
+  var state = loadState();
+
+  var peopleListEl = document.getElementById('peopleList');
+  var teamCountEl = document.getElementById('teamCount');
+  var searchEl = document.getElementById('search');
+  var nowDateEl = document.getElementById('nowDate');
+  var nowTimeEl = document.getElementById('nowTime');
+  var pageTitleEl = document.getElementById('pageTitle');
+  var toastEl = document.getElementById('toast');
+  var toastTextEl = document.getElementById('toastText');
+  var toastUndoEl = document.getElementById('toastUndo');
+  var overlayEl = document.getElementById('adminOverlay');
+  var lockViewEl = document.getElementById('lockView');
+  var adminBodyEl = document.getElementById('adminBody');
+  var pinInputEl = document.getElementById('pinInput');
+  var pinErrEl = document.getElementById('pinErr');
+  var adminPeopleEl = document.getElementById('adminPeople');
+  var peopleMsgEl = document.getElementById('peopleMsg');
+  var countsEl = document.getElementById('counts');
+  var pinMsgEl = document.getElementById('pinMsg');
+  var wipeMsgEl = document.getElementById('wipeMsg');
+  var nameMsgEl = document.getElementById('nameMsg');
+  var clockNameEl = document.getElementById('clockName');
+  var periodEl = document.getElementById('exportPeriod');
+  var addOverlayEl = document.getElementById('addOverlay');
+  var quickNameEl = document.getElementById('quickName');
+  var quickMsgEl = document.getElementById('quickMsg');
+
+  /* ------------------------------------------------------------------ store */
+
+  function loadState() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (raw) {
+        var d = JSON.parse(raw);
+        var people = Array.isArray(d.people) ? d.people : [];
+        var punches = Array.isArray(d.punches) ? d.punches : [];
+        return {
+          title: typeof d.title === 'string' && d.title.trim() ? d.title.trim() : DEFAULT_TITLE,
+          people: people.filter(function (p) {
+            return p && typeof p.id === 'string' && typeof p.name === 'string';
+          }),
+          punches: punches.filter(function (p) {
+            return p && typeof p.id === 'string' && typeof p.personId === 'string' &&
+              typeof p.ts === 'number' && (p.type === 'in' || p.type === 'out');
+          }),
+          pin: typeof d.pin === 'string' && d.pin ? d.pin : DEFAULT_PIN
+        };
+      }
+    } catch (e) {
+      if (window.console) console.warn('Could not read saved data', e);
+    }
+    return { title: DEFAULT_TITLE, people: [], punches: [], pin: DEFAULT_PIN };
+  }
+
+  function saveState() {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify(state));
+      return true;
+    } catch (e) {
+      showToast('Could not save on this tablet: ' + e.message, null);
+      return false;
+    }
+  }
+
+  function uid() {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+    return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+  }
+
+  /* ----------------------------------------------------------------- helpers */
+
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function fmtDate(ts) {
+    var d = new Date(ts);
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  }
+  function fmtTime(ts) {
+    var d = new Date(ts);
+    return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+  function fmtClock(ts) {
+    var d = new Date(ts);
+    return pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
+  }
+  /* Excel serial date, local time: days since 1899-12-30 */
+  function excelSerial(ts) {
+    var d = new Date(ts);
+    var ms = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(),
+      d.getHours(), d.getMinutes(), d.getSeconds());
+    return Math.round((ms / 86400000 + 25569) * 86400) / 86400;
+  }
+  function norm(s) {
+    var out = String(s == null ? '' : s);
+    if (out.normalize) out = out.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return out.toLowerCase().replace(/\s+/g, ' ').trim();
+  }
+  /* Round a length of time to the nearest quarter hour, so 2h34m is 2.5 and
+     1h08m is 1.25. A half quarter (7.5 minutes) rounds up. */
+  function quarterHours(ms) { return Math.round(ms / 900000) / 4; }
+  function findPerson(id) {
+    for (var i = 0; i < state.people.length; i++) if (state.people[i].id === id) return state.people[i];
+    return null;
+  }
+  function lastPunchOf(personId) {
+    for (var i = state.punches.length - 1; i >= 0; i--) {
+      if (state.punches[i].personId === personId) return state.punches[i];
+    }
+    return null;
+  }
+  function sortedPeople() {
+    return state.people.slice().sort(function (a, b) {
+      return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+    });
+  }
+
+  /* ------------------------------------------------------------------ title */
+
+  function renderTitle() {
+    var words = String(state.title).trim().split(/\s+/);
+    pageTitleEl.textContent = '';
+    if (words.length <= 1) {
+      pageTitleEl.textContent = words[0] || DEFAULT_TITLE;
+    } else {
+      pageTitleEl.appendChild(document.createTextNode(words.slice(0, -1).join(' ') + ' '));
+      var em = document.createElement('em');
+      em.textContent = words[words.length - 1];
+      pageTitleEl.appendChild(em);
+    }
+    document.title = state.title;
+    clockNameEl.value = state.title;
+  }
+
+  /* ------------------------------------------------------------------ clock */
+
+  function tickClock() {
+    var now = Date.now();
+    nowTimeEl.textContent = fmtClock(now);
+    nowDateEl.textContent = new Date(now).toLocaleDateString('en-GB', {
+      weekday: 'short', day: 'numeric', month: 'short'
+    });
+  }
+
+  /* ------------------------------------------------------------------- list */
+
+  function renderList() {
+    var q = norm(searchEl.value);
+    var frag = document.createDocumentFragment();
+    var shown = 0;
+
+    sortedPeople().forEach(function (person) {
+      if (q && norm(person.name).indexOf(q) === -1) return;
+      shown++;
+      frag.appendChild(buildRow(person, lastPunchOf(person.id)));
+    });
+
+    var empty;
+    if (state.people.length === 0) {
+      empty = 'No names yet. Open Admin, paste your team of names, and they will appear here.';
+    } else if (shown === 0) {
+      empty = 'No name matches "' + searchEl.value.trim() + '". Check the spelling, or clear the search.';
+    }
+    if (empty) {
+      var li = document.createElement('li');
+      li.className = 'listempty';
+      li.textContent = empty;
+      frag.appendChild(li);
+    }
+
+    peopleListEl.textContent = '';
+    peopleListEl.appendChild(frag);
+    teamCountEl.textContent = String(state.people.length);
+  }
+
+  function buildRow(person, last) {
+    var isIn = !!last && last.type === 'in';
+
+    var li = document.createElement('li');
+    li.className = 'person-row';
+
+    var row = document.createElement('div');
+    row.className = 'person';
+
+    var name = document.createElement('button');
+    name.type = 'button';
+    name.className = 'person-name';
+    name.textContent = person.name;
+    name.addEventListener('click', function () { punch(person.id); });
+
+    var controls = document.createElement('div');
+    controls.className = 'controls';
+
+    var action = document.createElement('button');
+    action.type = 'button';
+    action.className = 'action' + (isIn ? ' in' : '');
+    action.setAttribute('data-person', person.id);
+    action.textContent = isIn ? 'Tap to clock out' : 'Tap Here to Clock In';
+    action.addEventListener('click', function () { punch(person.id); });
+    controls.appendChild(action);
+
+    /* the clock in time is its own box, and only while the person is in */
+    if (isIn) {
+      var at = document.createElement('span');
+      at.className = 'intime';
+      at.textContent = 'In ' + fmtTime(last.ts);
+      controls.appendChild(at);
+    }
+
+    row.appendChild(name);
+    row.appendChild(controls);
+    li.appendChild(row);
+    return li;
+  }
+
+  /* ------------------------------------------------------------------ punch */
+
+  var toastTimer = null;
+  var undoPunchId = null;
+
+  function punch(personId) {
+    var person = findPerson(personId);
+    if (!person) return;
+
+    var last = lastPunchOf(personId);
+    var type = last && last.type === 'in' ? 'out' : 'in';
+    var rec = {
+      id: uid(),
+      personId: person.id,
+      name: person.name,
+      ts: Date.now(),
+      type: type
+    };
+    state.punches.push(rec);
+    saveState();
+
+    searchEl.value = '';
+    renderList();
+
+    showToast(
+      person.name + (type === 'in' ? ' clocked in at ' : ' clocked out at ') + fmtTime(rec.ts),
+      rec.id
+    );
+  }
+
+  function showToast(message, punchId) {
+    toastTextEl.textContent = message;
+    undoPunchId = punchId || null;
+    toastUndoEl.hidden = !undoPunchId;
+    toastEl.hidden = false;
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, 9000);
+  }
+
+  function hideToast() {
+    toastEl.hidden = true;
+    undoPunchId = null;
+    if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+  }
+
+  toastUndoEl.addEventListener('click', function () {
+    if (!undoPunchId) return;
+    var id = undoPunchId;
+    state.punches = state.punches.filter(function (p) { return p.id !== id; });
+    saveState();
+    renderList();
+    hideToast();
+    showToast('Entry removed.', null);
+  });
+
+  /* ------------------------------------------------------------- admin gate */
+
+  function openAdmin() {
+    overlayEl.hidden = false;
+    document.body.style.overflow = 'hidden';
+    if (adminBodyEl.hidden !== false) {
+      pinInputEl.value = '';
+      pinErrEl.hidden = true;
+      pinInputEl.focus();
+    } else {
+      renderAdminPeople();
+    }
+  }
+
+  function closeAdmin() {
+    overlayEl.hidden = true;
+    document.body.style.overflow = '';
+    lockViewEl.hidden = false;
+    adminBodyEl.hidden = true;
+    pinInputEl.value = '';
+    pinErrEl.hidden = true;
+    editingPersonId = null;
+    setMsg(nameMsgEl, '');
+    setMsg(peopleMsgEl, '');
+    setMsg(pinMsgEl, '');
+    setMsg(wipeMsgEl, '');
+    renderList();
+  }
+
+  function tryUnlock() {
+    if (pinInputEl.value === state.pin) {
+      lockViewEl.hidden = true;
+      adminBodyEl.hidden = false;
+      pinInputEl.value = '';
+      pinErrEl.hidden = true;
+      renderTitle();
+      renderAdminPeople();
+    } else {
+      pinErrEl.hidden = false;
+      pinInputEl.value = '';
+      pinInputEl.focus();
+    }
+  }
+
+  function setMsg(el, text, bad) {
+    el.textContent = text || '';
+    el.className = 'msg' + (bad ? ' bad' : '');
+  }
+
+  var editingPersonId = null;
+
+  function renderAdminPeople() {
+    var frag = document.createDocumentFragment();
+    var focusTarget = null;
+
+    sortedPeople().forEach(function (person) {
+      var row = document.createElement('div');
+      row.className = 'admin-person';
+
+      if (editingPersonId === person.id) {
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'field';
+        input.maxLength = 60;
+        input.value = person.name;
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); renamePerson(person.id, input.value); }
+          else if (e.key === 'Escape') { editingPersonId = null; renderAdminPeople(); }
+        });
+
+        var save = document.createElement('button');
+        save.type = 'button';
+        save.className = 'btn small';
+        save.textContent = 'Save';
+        save.addEventListener('click', function () { renamePerson(person.id, input.value); });
+
+        var cancel = document.createElement('button');
+        cancel.type = 'button';
+        cancel.className = 'btn ghost small';
+        cancel.textContent = 'Cancel';
+        cancel.addEventListener('click', function () { editingPersonId = null; renderAdminPeople(); });
+
+        row.appendChild(input);
+        row.appendChild(save);
+        row.appendChild(cancel);
+        focusTarget = input;
+      } else {
+        var nm = document.createElement('span');
+        nm.className = 'name';
+        nm.textContent = person.name;
+
+        var edit = document.createElement('button');
+        edit.type = 'button';
+        edit.className = 'btn ghost small';
+        edit.textContent = 'Edit';
+        edit.addEventListener('click', function () {
+          editingPersonId = person.id;
+          renderAdminPeople();
+        });
+
+        var del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'btn ghost small';
+        del.textContent = 'Remove';
+        del.addEventListener('click', function () { removePerson(person.id); });
+
+        row.appendChild(nm);
+        row.appendChild(edit);
+        row.appendChild(del);
+      }
+
+      frag.appendChild(row);
+    });
+
+    adminPeopleEl.textContent = '';
+    adminPeopleEl.appendChild(frag);
+    if (focusTarget) focusTarget.focus();
+
+    var open = 0;
+    state.people.forEach(function (p) {
+      var l = lastPunchOf(p.id);
+      if (l && l.type === 'in') open++;
+    });
+    countsEl.textContent = state.people.length + (state.people.length === 1 ? ' name' : ' names') +
+      ' / ' + state.punches.length + (state.punches.length === 1 ? ' entry' : ' entries') +
+      (open ? ' / ' + open + ' in' : '');
+  }
+
+  function renamePerson(id, raw) {
+    var person = findPerson(id);
+    if (!person) return;
+
+    var name = String(raw == null ? '' : raw).replace(/\s+/g, ' ').trim();
+    if (name.length > 60) name = name.slice(0, 60).trim();
+    if (!name) { setMsg(peopleMsgEl, 'Type a name first', true); return; }
+
+    var key = norm(name);
+    for (var i = 0; i < state.people.length; i++) {
+      if (state.people[i].id !== id && norm(state.people[i].name) === key) {
+        setMsg(peopleMsgEl, 'That name is already on the list', true);
+        return;
+      }
+    }
+
+    var previous = person.name;
+    person.name = name;
+    /* keep the history under the new name */
+    if (previous !== name) {
+      state.punches.forEach(function (p) {
+        if (p.personId === id) p.name = name;
+      });
+    }
+
+    saveState();
+    editingPersonId = null;
+    renderAdminPeople();
+    renderList();
+    setMsg(peopleMsgEl, 'Name updated', false);
+  }
+
+  function saveName() {
+    var value = clockNameEl.value.trim();
+    if (!value) {
+      setMsg(nameMsgEl, 'Type a name first', true);
+      return;
+    }
+    state.title = value.slice(0, 60);
+    saveState();
+    renderTitle();
+    setMsg(nameMsgEl, 'Name saved', false);
+  }
+
+  function addPeople() {
+    var box = document.getElementById('newNames');
+    var existing = {};
+    state.people.forEach(function (p) { existing[norm(p.name)] = true; });
+
+    var added = 0, skipped = 0;
+    box.value.split(/\r?\n/).forEach(function (line) {
+      var name = line.replace(/\s+/g, ' ').trim();
+      if (!name) return;
+      if (name.length > 60) name = name.slice(0, 60).trim();
+      if (existing[norm(name)]) { skipped++; return; }
+      existing[norm(name)] = true;
+      state.people.push({ id: uid(), name: name, created: Date.now() });
+      added++;
+    });
+
+    if (added) {
+      saveState();
+      box.value = '';
+      renderAdminPeople();
+      renderList();
+    }
+    if (!added && !skipped) setMsg(peopleMsgEl, 'Type a name first', true);
+    else if (skipped) setMsg(peopleMsgEl, added + ' added, ' + skipped + ' already there', added === 0);
+    else setMsg(peopleMsgEl, added + (added === 1 ? ' name added' : ' names added'), false);
+  }
+
+  function removePerson(id) {
+    var person = findPerson(id);
+    if (!person) return;
+    if (!window.confirm('Remove "' + person.name + '" from the list? Entries already recorded are kept in the export.')) return;
+    state.people = state.people.filter(function (p) { return p.id !== id; });
+    if (editingPersonId === id) editingPersonId = null;
+    saveState();
+    renderAdminPeople();
+    renderList();
+    setMsg(peopleMsgEl, person.name + ' removed', false);
+  }
+
+  /* --------------------------------------------------------- add a name */
+
+  function addNameFromDialog(raw) {
+    var name = String(raw == null ? '' : raw).replace(/\s+/g, ' ').trim();
+    if (name.length > 60) name = name.slice(0, 60).trim();
+    if (!name) { setMsg(quickMsgEl, 'Type a name first', true); return false; }
+
+    var key = norm(name);
+    for (var i = 0; i < state.people.length; i++) {
+      if (norm(state.people[i].name) === key) {
+        setMsg(quickMsgEl, 'That name is already on the list', true);
+        return false;
+      }
+    }
+
+    state.people.push({ id: uid(), name: name, created: Date.now() });
+    saveState();
+    renderList();
+    if (adminBodyEl.hidden === false) renderAdminPeople();
+    closeAddDialog();
+    showToast(name + ' added to the list', null);
+    return true;
+  }
+
+  function openAddDialog() {
+    addOverlayEl.hidden = false;
+    document.body.style.overflow = 'hidden';
+    setMsg(quickMsgEl, '');
+    quickNameEl.value = '';
+    quickNameEl.focus();
+  }
+
+  function closeAddDialog() {
+    addOverlayEl.hidden = true;
+    document.body.style.overflow = '';
+    setMsg(quickMsgEl, '');
+    quickNameEl.value = '';
+  }
+
+  function savePin() {
+    var first = document.getElementById('newPin');
+    var second = document.getElementById('newPin2');
+    var pin = first.value.trim();
+    var again = second.value.trim();
+
+    if (!/^\d{4,12}$/.test(pin)) {
+      setMsg(pinMsgEl, 'Use 4 to 12 digits', true);
+      return;
+    }
+    if (pin !== again) {
+      setMsg(pinMsgEl, 'The two PINs are not the same', true);
+      second.value = '';
+      second.focus();
+      return;
+    }
+
+    state.pin = pin;
+    saveState();
+    first.value = '';
+    second.value = '';
+    setMsg(pinMsgEl, 'PIN saved', false);
+  }
+
+  function wipePunches() {
+    if (!window.confirm('Delete ALL ' + state.punches.length + ' entries? This cannot be undone.')) return;
+    if (!window.confirm('Really delete everything? Export first if you need it.')) return;
+    state.punches = [];
+    saveState();
+    renderAdminPeople();
+    renderList();
+    setMsg(wipeMsgEl, 'All entries deleted', false);
+  }
+
+  /* --------------------------------------------------------------- sessions */
+
+  function buildSessions(punches) {
+    var sorted = punches.slice().sort(function (a, b) { return a.ts - b.ts; });
+    var open = {};
+    var sessions = [];
+
+    sorted.forEach(function (p) {
+      if (p.type === 'in') {
+        if (!open[p.personId]) open[p.personId] = p;
+      } else {
+        var start = open[p.personId];
+        if (start) {
+          sessions.push({ name: start.name, inTs: start.ts, outTs: p.ts });
+          delete open[p.personId];
+        }
+      }
+    });
+
+    Object.keys(open).forEach(function (id) {
+      sessions.push({ name: open[id].name, inTs: open[id].ts, outTs: null });
+    });
+
+    sessions.sort(function (a, b) { return a.inTs - b.inTs; });
+    return sessions;
+  }
+
+  /* Local midnight, n days back. Built from date parts so DST cannot skew it. */
+  function startOfDaysAgo(n) {
+    var d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate() - n).getTime();
+  }
+
+  function rangeStart(period) {
+    if (period === 'today') return startOfDaysAgo(0);
+    if (period === 'week') return startOfDaysAgo(6);
+    if (period === 'month') return startOfDaysAgo(29);
+    if (period === 'year') return new Date(new Date().getFullYear(), 0, 1).getTime();
+    return null;
+  }
+
+  function exportRows(period) {
+    var from = rangeStart(period);
+    var punches = from == null
+      ? state.punches.slice()
+      : state.punches.filter(function (p) { return p.ts >= from; });
+    var sessions = buildSessions(punches);
+
+    /* Real dates and times, so the Hours column is a live Excel formula. */
+    var timesheet = [['Name', 'Date', 'Clock in', 'Clock out', 'Hours']];
+    var totals = {};
+    sessions.forEach(function (s, i) {
+      var row = i + 2;
+      var hours = s.outTs ? quarterHours(s.outTs - s.inTs) : null;
+      timesheet.push([
+        s.name,
+        { n: Math.floor(excelSerial(s.inTs)), s: 3 },
+        { n: excelSerial(s.inTs), s: 4 },
+        s.outTs ? { n: excelSerial(s.outTs), s: 4 } : '',
+        hours == null ? '' : {
+          f: 'ROUND((D' + row + '-C' + row + ')*96,0)/4',
+          n: hours,
+          s: 2
+        }
+      ]);
+      if (hours != null) {
+        if (!totals[s.name]) totals[s.name] = { hours: 0, days: 0 };
+        totals[s.name].hours += hours;
+        totals[s.name].days += 1;
+      }
+    });
+
+    var summary = [['Name', 'Days worked', 'Total hours']];
+    Object.keys(totals).sort(function (a, b) {
+      return a.localeCompare(b, undefined, { sensitivity: 'base' });
+    }).forEach(function (name, i) {
+      var row = i + 2;
+      summary.push([
+        name,
+        totals[name].days,
+        {
+          f: 'SUMIF(Timesheet!$A:$A,A' + row + ',Timesheet!$E:$E)',
+          n: totals[name].hours,
+          s: 2
+        }
+      ]);
+    });
+
+    var raw = [['Name', 'Date', 'Time', 'Action']];
+    punches.slice().sort(function (a, b) { return a.ts - b.ts; }).forEach(function (p) {
+      raw.push([p.name || '(removed)', fmtDate(p.ts), fmtTime(p.ts), p.type === 'in' ? 'Clock in' : 'Clock out']);
+    });
+
+    return {
+      sheets: [
+        { name: 'Timesheet', rows: timesheet },
+        { name: 'Summary', rows: summary },
+        { name: 'All entries', rows: raw }
+      ],
+      timesheet: timesheet,
+      raw: raw
+    };
+  }
+
+  function csvCell(v) {
+    if (v && typeof v === 'object') v = v.n;
+    if (v == null) return '';
+    var s = String(v);
+    if (/[",\r\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+
+  function makeCsv(rows) {
+    return '\ufeff' + rows.map(function (r) { return r.map(csvCell).join(','); }).join('\r\n') + '\r\n';
+  }
+
+  /* ------------------------------------------------------------- xlsx writer */
+
+  var CRC_TABLE = (function () {
+    var table = new Uint32Array(256);
+    for (var n = 0; n < 256; n++) {
+      var c = n;
+      for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      table[n] = c >>> 0;
+    }
+    return table;
+  })();
+
+  function crc32(bytes) {
+    var crc = 0xFFFFFFFF;
+    for (var i = 0; i < bytes.length; i++) {
+      crc = (crc >>> 8) ^ CRC_TABLE[(crc ^ bytes[i]) & 0xFF];
+    }
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  function concatBytes(parts) {
+    var total = 0, i;
+    for (i = 0; i < parts.length; i++) total += parts[i].length;
+    var out = new Uint8Array(total);
+    var at = 0;
+    for (i = 0; i < parts.length; i++) { out.set(parts[i], at); at += parts[i].length; }
+    return out;
+  }
+
+  /* Stored (uncompressed) ZIP: enough for an .xlsx, no dependencies. */
+  function makeZip(files) {
+    var enc = new TextEncoder();
+    var chunks = [];
+    var central = [];
+    var offset = 0;
+    var dosTime = 0;
+    var dosDate = ((2024 - 1980) << 9) | (1 << 5) | 1; /* 2024-01-01, stable output */
+
+    files.forEach(function (file) {
+      var nameBytes = enc.encode(file.name);
+      var data = file.data;
+      var crc = crc32(data);
+
+      var local = new Uint8Array(30 + nameBytes.length);
+      var lv = new DataView(local.buffer);
+      lv.setUint32(0, 0x04034b50, true);
+      lv.setUint16(4, 20, true);
+      lv.setUint16(6, 0, true);
+      lv.setUint16(8, 0, true);
+      lv.setUint16(10, dosTime, true);
+      lv.setUint16(12, dosDate, true);
+      lv.setUint32(14, crc, true);
+      lv.setUint32(18, data.length, true);
+      lv.setUint32(22, data.length, true);
+      lv.setUint16(26, nameBytes.length, true);
+      lv.setUint16(28, 0, true);
+      local.set(nameBytes, 30);
+
+      chunks.push(local, data);
+
+      var cd = new Uint8Array(46 + nameBytes.length);
+      var cv = new DataView(cd.buffer);
+      cv.setUint32(0, 0x02014b50, true);
+      cv.setUint16(4, 20, true);
+      cv.setUint16(6, 20, true);
+      cv.setUint16(8, 0, true);
+      cv.setUint16(10, 0, true);
+      cv.setUint16(12, dosTime, true);
+      cv.setUint16(14, dosDate, true);
+      cv.setUint32(16, crc, true);
+      cv.setUint32(20, data.length, true);
+      cv.setUint32(24, data.length, true);
+      cv.setUint16(28, nameBytes.length, true);
+      cv.setUint16(30, 0, true);
+      cv.setUint16(32, 0, true);
+      cv.setUint16(34, 0, true);
+      cv.setUint16(36, 0, true);
+      cv.setUint32(38, 0, true);
+      cv.setUint32(42, offset, true);
+      cd.set(nameBytes, 46);
+
+      central.push(cd);
+      offset += local.length + data.length;
+    });
+
+    var cdBytes = concatBytes(central);
+    var eocd = new Uint8Array(22);
+    var ev = new DataView(eocd.buffer);
+    ev.setUint32(0, 0x06054b50, true);
+    ev.setUint16(4, 0, true);
+    ev.setUint16(6, 0, true);
+    ev.setUint16(8, files.length, true);
+    ev.setUint16(10, files.length, true);
+    ev.setUint32(12, cdBytes.length, true);
+    ev.setUint32(16, offset, true);
+    ev.setUint16(20, 0, true);
+
+    return concatBytes([concatBytes(chunks), cdBytes, eocd]);
+  }
+
+  function xmlEscape(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '');
+  }
+
+  function colName(n) {
+    var s = '';
+    while (n > 0) {
+      var m = (n - 1) % 26;
+      s = String.fromCharCode(65 + m) + s;
+      n = Math.floor((n - 1) / 26);
+    }
+    return s;
+  }
+
+  function sheetXml(rows) {
+    var body = rows.map(function (row, r) {
+      var cells = [];
+      for (var c = 0; c < row.length; c++) {
+        var cell = row[c];
+        if (cell === null || cell === undefined || cell === '') continue;
+        var ref = colName(c + 1) + (r + 1);
+        var style = r === 0 ? ' s="1"' : '';
+        if (typeof cell === 'number') {
+          if (!isFinite(cell)) continue;
+          cells.push('<c r="' + ref + '"' + style + '><v>' + cell + '</v></c>');
+        } else if (typeof cell === 'object') {
+          var st = typeof cell.s === 'number' ? ' s="' + cell.s + '"' : style;
+          var formula = typeof cell.f === 'string' ? '<f>' + xmlEscape(cell.f) + '</f>' : '';
+          cells.push('<c r="' + ref + '"' + st + '>' + formula + '<v>' + cell.n + '</v></c>');
+        } else {
+          cells.push('<c r="' + ref + '"' + style + ' t="inlineStr"><is><t xml:space="preserve">' +
+            xmlEscape(cell) + '</t></is></c>');
+        }
+      }
+      return '<row r="' + (r + 1) + '">' + cells.join('') + '</row>';
+    }).join('');
+
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+      '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+      '<sheetData>' + body + '</sheetData></worksheet>';
+  }
+
+  function makeXlsx(sheets) {
+    var enc = new TextEncoder();
+    var toBytes = function (s) { return enc.encode(s); };
+    var NS = 'http://schemas.openxmlformats.org';
+    var files = [];
+
+    var contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+      '<Types xmlns="' + NS + '/package/2006/content-types">' +
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+      '<Default Extension="xml" ContentType="application/xml"/>' +
+      '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+      '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>';
+    sheets.forEach(function (sheet, i) {
+      contentTypes += '<Override PartName="/xl/worksheets/sheet' + (i + 1) +
+        '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';
+    });
+    contentTypes += '</Types>';
+
+    files.push({ name: '[Content_Types].xml', data: toBytes(contentTypes) });
+
+    files.push({
+      name: '_rels/.rels',
+      data: toBytes('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+        '<Relationships xmlns="' + NS + '/package/2006/relationships">' +
+        '<Relationship Id="rId1" Type="' + NS + '/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+        '</Relationships>')
+    });
+
+    var workbook = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+      '<workbook xmlns="' + NS + '/spreadsheetml/2006/main" xmlns:r="' + NS + '/officeDocument/2006/relationships"><sheets>';
+    sheets.forEach(function (sheet, i) {
+      workbook += '<sheet name="' + xmlEscape(sheet.name) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>';
+    });
+    workbook += '</sheets><calcPr calcId="0" fullCalcOnLoad="1"/></workbook>';
+    files.push({ name: 'xl/workbook.xml', data: toBytes(workbook) });
+
+    var rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+      '<Relationships xmlns="' + NS + '/package/2006/relationships">';
+    sheets.forEach(function (sheet, i) {
+      rels += '<Relationship Id="rId' + (i + 1) + '" Type="' + NS +
+        '/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + (i + 1) + '.xml"/>';
+    });
+    rels += '<Relationship Id="rId' + (sheets.length + 1) + '" Type="' + NS +
+      '/officeDocument/2006/relationships/styles" Target="styles.xml"/>';
+    rels += '</Relationships>';
+    files.push({ name: 'xl/_rels/workbook.xml.rels', data: toBytes(rels) });
+
+    var styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+      '<styleSheet xmlns="' + NS + '/spreadsheetml/2006/main">' +
+      '<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font>' +
+      '<font><b/><sz val="11"/><name val="Calibri"/></font></fonts>' +
+      '<fills count="2"><fill><patternFill patternType="none"/></fill>' +
+      '<fill><patternFill patternType="gray125"/></fill></fills>' +
+      '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>' +
+      '<numFmts count="3">' +
+      '<numFmt numFmtId="164" formatCode="hh:mm"/>' +
+      '<numFmt numFmtId="165" formatCode="yyyy-mm-dd"/>' +
+      '<numFmt numFmtId="166" formatCode="0.##"/>' +
+      '</numFmts>' +
+      '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+      '<cellXfs count="5">' +
+      '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+      '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
+      '<xf numFmtId="166" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +
+      '<xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +
+      '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +
+      '</cellXfs>' +
+      '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+      '</styleSheet>';
+    files.push({ name: 'xl/styles.xml', data: toBytes(styles) });
+
+    sheets.forEach(function (sheet, i) {
+      files.push({ name: 'xl/worksheets/sheet' + (i + 1) + '.xml', data: toBytes(sheetXml(sheet.rows)) });
+    });
+
+    return makeZip(files);
+  }
+
+  /* --------------------------------------------------------------- download */
+
+  function download(bytes, filename, mime) {
+    var blob = new Blob([bytes], { type: mime });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 5000);
+  }
+
+  function stamp() { return fmtDate(Date.now()); }
+
+  function exportXlsx() {
+    var period = periodEl.value;
+    var data = exportRows(period);
+    if (data.raw.length <= 1) {
+      window.alert('Nothing recorded for this period.');
+      return;
+    }
+    download(makeXlsx(data.sheets), 'timesheet-' + period + '-' + stamp() + '.xlsx',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  }
+
+  function exportCsv() {
+    var period = periodEl.value;
+    var data = exportRows(period);
+    if (data.timesheet.length <= 1) {
+      window.alert('Nothing recorded for this period.');
+      return;
+    }
+    download(makeCsv(data.timesheet), 'timesheet-' + period + '-' + stamp() + '.csv',
+      'text/csv;charset=utf-8');
+  }
+
+  /* ----------------------------------------------------------------- events */
+
+  searchEl.addEventListener('input', renderList);
+  searchEl.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter') return;
+    var rows = peopleListEl.querySelectorAll('.action');
+    if (rows.length === 1) rows[0].click();
+  });
+
+  document.getElementById('adminBtn').addEventListener('click', openAdmin);
+  document.getElementById('addNameBtn').addEventListener('click', openAddDialog);
+  document.getElementById('addClose').addEventListener('click', closeAddDialog);
+  document.getElementById('quickAdd').addEventListener('click', function () {
+    addNameFromDialog(quickNameEl.value);
+  });
+  quickNameEl.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); addNameFromDialog(quickNameEl.value); }
+  });
+  document.getElementById('adminClose').addEventListener('click', closeAdmin);
+  document.getElementById('pinOk').addEventListener('click', tryUnlock);
+  pinInputEl.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') tryUnlock();
+  });
+  document.getElementById('saveName').addEventListener('click', saveName);
+  document.getElementById('addBtn').addEventListener('click', addPeople);
+  document.getElementById('savePin').addEventListener('click', savePin);
+  document.getElementById('wipeBtn').addEventListener('click', wipePunches);
+  document.getElementById('exportXlsx').addEventListener('click', exportXlsx);
+  document.getElementById('exportCsv').addEventListener('click', exportCsv);
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if (!addOverlayEl.hidden) closeAddDialog();
+    else if (!overlayEl.hidden) closeAdmin();
+  });
+
+  /* ------------------------------------------------------------------ start */
+
+  renderTitle();
+  tickClock();
+  setInterval(tickClock, 1000);
+  renderList();
+
+  if (state.people.length === 0) showToast('No names yet. Use Add new name to start the list.', null);
+
+  /* Offline shell, only when served over https (GitHub Pages). Ignored on file:// */
+  if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator &&
+      typeof location !== 'undefined' && location.protocol === 'https:') {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    });
+  }
+
+  /* exposed for automated tests (harmless in the browser) */
+  window.__timeclock = {
+    makeXlsx: makeXlsx,
+    makeCsv: makeCsv,
+    quarterHours: quarterHours,
+    addName: addNameFromDialog,
+    buildSessions: buildSessions,
+    exportFor: function (punches, period) {
+      var saved = state.punches;
+      state.punches = punches;
+      var out = exportRows(period || 'all');
+      state.punches = saved;
+      return out;
+    }
+  };
+})();
+</script>
+</body>
+</html>
