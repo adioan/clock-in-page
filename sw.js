@@ -1,6 +1,6 @@
 /* Clock In Page: keeps the app working with no signal.
    Bump CACHE when index.html changes so tablets pick the new page up. */
-const CACHE = 'clock-in-page-v1';
+const CACHE = 'clock-in-page-v2';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', (event) => {
@@ -32,7 +32,9 @@ self.addEventListener('fetch', (event) => {
     const cache = await caches.open(CACHE);
     const cached = await cache.match(request, { ignoreSearch: true });
 
-    const fresh = fetch(request).then((response) => {
+    /* cache: 'reload' skips the browser cache, so a new page is noticed
+       straight away rather than after GitHub's ten minute cache expires */
+    const fresh = fetch(request, { cache: 'reload' }).then((response) => {
       if (response && response.ok) cache.put(request, response.clone());
       return response;
     }).catch(() => null);
