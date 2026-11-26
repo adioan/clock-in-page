@@ -1,6 +1,6 @@
 /* Clock In Page: keeps the app working with no signal.
    Bump CACHE when index.html changes so tablets pick the new page up. */
-const CACHE = 'clock-in-page-v2';
+const CACHE = 'clock-in-page-v3';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', (event) => {

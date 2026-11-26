@@ -54,6 +54,23 @@
     letter-spacing: .08em;
     color: var(--muted);
   }
+  /* the send state, next to the version. Hidden until a tablet is set up. */
+  .sync {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border: 2px solid var(--ink);
+    border-radius: 6px;
+    background: var(--chip);
+  }
+  .sync.good { background: var(--green); border-color: var(--green); color: var(--paper); }
+  .sync.warn { background: var(--note); }
+  .sync.bad { background: var(--coral); }
+  .sync.quiet { background: var(--paper); }
+  .sync.setup { display: none; }
   .clock {
     margin: 0;
     font-family: var(--mono);
@@ -287,6 +304,10 @@
   .admin-person:first-child { border-top: 0; }
   .admin-person .name { flex: 1; font-size: 16px; font-weight: 700; overflow-wrap: anywhere; }
   .admin-person .field { flex: 1; min-width: 0; }
+  /* review rows: two snug time boxes and two buttons, and room to wrap on a phone */
+  #reviewList .admin-person { flex-wrap: wrap; }
+  #reviewList .field { flex: 0 0 92px; width: 92px; min-width: 0; }
+  #reviewList .name { flex: 1 0 100%; }
 
   .msg {
     font-family: var(--mono);
@@ -309,6 +330,7 @@
       <div class="headleft">
         <button class="linkbtn" id="adminBtn" type="button">Admin</button>
         <span class="version" id="appVersion">v1.00</span>
+        <span class="sync setup" id="syncState">not set up</span>
       </div>
       <p class="clock"><span id="nowDate"></span> &nbsp; <span id="nowTime">--:--:--</span></p>
     </div>
@@ -376,6 +398,47 @@
 
     <div id="adminBody" hidden>
       <div class="card pad">
+        <h3>To send the hours</h3>
+        <p>1. Open Review below. Fix any session marked auto-closed: set the time the person really left, or confirm it as it is.<br>
+          2. Turn on the hotspot and connect the tablet.<br>
+          3. This page sends by itself. You can also press <strong>Send now</strong>.<br>
+          4. Wait for "sessions sent". Anything red or amber: read Troubleshooting at the bottom of this page.</p>
+      </div>
+
+      <div class="card pad">
+        <h3>Send</h3>
+        <p class="stats" id="syncCount">0 waiting</p>
+        <p class="note" id="syncWarn" hidden></p>
+        <div class="row">
+          <button class="btn" id="sendNowBtn" type="button">Send now</button>
+        </div>
+        <p class="msg" id="syncMsg"></p>
+      </div>
+
+      <div class="card pad">
+        <h3>Review</h3>
+        <p>A session held here is not sent until you confirm it. The app guesses the clock-out when someone is still clocked in at midnight, so the guess must be checked or corrected.</p>
+        <div class="list" id="reviewList"></div>
+        <p class="stats" id="reviewEmpty">Nothing to review.</p>
+      </div>
+
+      <div class="card pad">
+        <h3>Settings for sending</h3>
+        <p>Set this once on each tablet. The endpoint and the secret come from the Apps Script deployment.</p>
+        <label class="stats" for="syncEndpoint">Endpoint</label>
+        <input class="field" id="syncEndpoint" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://script.google.com/macros/s/.../exec">
+        <label class="stats" for="syncSecret">Secret</label>
+        <input class="field" id="syncSecret" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="The shared secret">
+        <label class="stats" for="syncDevice">Tablet name</label>
+        <input class="field" id="syncDevice" type="text" maxlength="40" autocomplete="off" spellcheck="false" placeholder="Tablet 1">
+        <div class="row">
+          <button class="btn" id="syncSaveBtn" type="button">Save settings</button>
+          <button class="btn ghost" id="syncTestBtn" type="button">Test the connection</button>
+        </div>
+        <p class="msg" id="syncSetMsg"></p>
+      </div>
+
+      <div class="card pad">
         <h3>Clock name</h3>
         <p>This is the name at the top of the clock screen.</p>
         <div class="row">
@@ -434,6 +497,18 @@
         </div>
         <p class="msg" id="wipeMsg"></p>
       </div>
+
+      <div class="card pad">
+        <h3>Troubleshooting</h3>
+        <p><strong>"Needs review: name, date"</strong> Someone was still clocked in at midnight, so the app clocked them out at the end of that day. That time is almost certainly wrong. Open Review, set the real time, then press Send now.</p>
+        <p><strong>"Offline" or nothing happens</strong> Check the hotspot is on and the tablet is connected. Open the page again. Wait one minute.</p>
+        <p><strong>"Auth error"</strong> The secret is wrong or has changed. Go to Settings, type the secret again. Ask Adi if you do not have it.</p>
+        <p><strong>"Names are not in Overview"</strong> The hours are saved, but they will not show in the right row. Open the Sheet, go to Entries, and correct each red name to match Overview exactly. Then the hours move by themselves.</p>
+        <p><strong>"1 not sent: reason"</strong> The time was wrong. Correct it in Review, or discard it. Then press Send now.</p>
+        <p><strong>A waiting line in amber</strong> Hours are only on this tablet. Connect and send soon. Press Export Excel as a backup.</p>
+        <p><strong>Server error, or it keeps failing</strong> Wait a few minutes and press Send now. If it still fails after three tries, press Export Excel and tell Adi.</p>
+        <p><strong>Never</strong> clear the browser data on the tablet. It deletes the hours that are not sent.</p>
+      </div>
     </div>
   </div>
 </div>
@@ -443,11 +518,14 @@
   'use strict';
 
   var STORE_KEY = 'timeclock.v1';
+  var SYNC_KEY = 'timeclock.sync.v1';
   var DEFAULT_PIN = '1234';
-  var APP_VERSION = '1.00';
+  var APP_VERSION = '1.10';
   var DEFAULT_TITLE = 'Friends of Telford Town Park';
+  var SEND_TIMEOUT = 15000;   /* the first call after a quiet spell takes about 4 seconds */
 
   var state = loadState();
+  var sync = loadSync();
 
   var peopleListEl = document.getElementById('peopleList');
   var teamCountEl = document.getElementById('teamCount');
@@ -474,6 +552,17 @@
   var addOverlayEl = document.getElementById('addOverlay');
   var quickNameEl = document.getElementById('quickName');
   var quickMsgEl = document.getElementById('quickMsg');
+  var syncStateEl = document.getElementById('syncState');
+  var syncMsgEl = document.getElementById('syncMsg');
+  var syncCountEl = document.getElementById('syncCount');
+  var syncWarnEl = document.getElementById('syncWarn');
+  var sendNowBtn = document.getElementById('sendNowBtn');
+  var reviewListEl = document.getElementById('reviewList');
+  var reviewEmptyEl = document.getElementById('reviewEmpty');
+  var syncEndpointEl = document.getElementById('syncEndpoint');
+  var syncSecretEl = document.getElementById('syncSecret');
+  var syncDeviceEl = document.getElementById('syncDevice');
+  var syncSetMsgEl = document.getElementById('syncSetMsg');
 
   /* ------------------------------------------------------------------ store */
 
@@ -505,6 +594,51 @@
   function saveState() {
     try {
       localStorage.setItem(STORE_KEY, JSON.stringify(state));
+      return true;
+    } catch (e) {
+      showToast('Could not save on this tablet: ' + e.message, null);
+      return false;
+    }
+  }
+
+  /* The send settings and the record of what has already gone. A separate key,
+     so timeclock.v1 keeps its shape and an update never touches the punches. */
+  function emptySync() {
+    return {
+      deviceId: '', device: '', endpoint: '', secret: '',
+      sent: {}, held: {}, edited: {}, reasons: {},
+      lastSendAt: 0, lastSendCount: 0, lastError: ''
+    };
+  }
+
+  function loadSync() {
+    var out = emptySync();
+    try {
+      var raw = localStorage.getItem(SYNC_KEY);
+      var d = raw ? JSON.parse(raw) : null;
+      if (d && typeof d === 'object') {
+        out.deviceId = typeof d.deviceId === 'string' ? d.deviceId : '';
+        out.device = typeof d.device === 'string' ? d.device : '';
+        out.endpoint = typeof d.endpoint === 'string' ? d.endpoint : '';
+        out.secret = typeof d.secret === 'string' ? d.secret : '';
+        out.sent = d.sent && typeof d.sent === 'object' ? d.sent : {};
+        out.held = d.held && typeof d.held === 'object' ? d.held : {};
+        out.edited = d.edited && typeof d.edited === 'object' ? d.edited : {};
+        out.reasons = d.reasons && typeof d.reasons === 'object' ? d.reasons : {};
+        out.lastSendAt = typeof d.lastSendAt === 'number' ? d.lastSendAt : 0;
+        out.lastSendCount = typeof d.lastSendCount === 'number' ? d.lastSendCount : 0;
+        out.lastError = typeof d.lastError === 'string' ? d.lastError : '';
+      }
+    } catch (e) {
+      if (window.console) console.warn('Could not read the send settings', e);
+    }
+    if (!out.deviceId) out.deviceId = 'tablet-' + Math.random().toString(36).slice(2, 8);
+    return out;
+  }
+
+  function saveSync() {
+    try {
+      localStorage.setItem(SYNC_KEY, JSON.stringify(sync));
       return true;
     } catch (e) {
       showToast('Could not save on this tablet: ' + e.message, null);
@@ -685,11 +819,14 @@
       ts: Date.now(),
       type: type
     };
+    /* The clock-out closes the session, so the session gets its id here. */
+    if (type === 'out') rec.sessionId = uid();
     state.punches.push(rec);
     saveState();
 
     searchEl.value = '';
     renderList();
+    renderSync();
 
     showToast(
       person.name + (type === 'in' ? ' clocked in at ' : ' clocked out at ') + fmtTime(rec.ts),
@@ -718,6 +855,7 @@
     state.punches = state.punches.filter(function (p) { return p.id !== id; });
     saveState();
     renderList();
+    syncTick();
     hideToast();
     showToast('Entry removed.', null);
   });
@@ -759,6 +897,8 @@
       pinErrEl.hidden = true;
       renderTitle();
       renderAdminPeople();
+      fillSettings();
+      renderSync();
     } else {
       pinErrEl.hidden = false;
       pinInputEl.value = '';
@@ -1003,6 +1143,7 @@
     saveState();
     renderAdminPeople();
     renderList();
+    syncTick();
     setMsg(wipeMsgEl, 'All entries deleted', false);
   }
 
@@ -1019,18 +1160,498 @@
       } else {
         var start = open[p.personId];
         if (start) {
-          sessions.push({ name: start.name, inTs: start.ts, outTs: p.ts });
+          sessions.push({
+            personId: start.personId, name: start.name, inTs: start.ts, outTs: p.ts,
+            sessionId: p.sessionId || '', auto: !!p.auto,
+            inPunchId: start.id, outPunchId: p.id
+          });
           delete open[p.personId];
         }
       }
     });
 
     Object.keys(open).forEach(function (id) {
-      sessions.push({ name: open[id].name, inTs: open[id].ts, outTs: null });
+      sessions.push({
+        personId: open[id].personId, name: open[id].name, inTs: open[id].ts, outTs: null,
+        sessionId: '', auto: false, inPunchId: open[id].id, outPunchId: ''
+      });
     });
 
     sessions.sort(function (a, b) { return a.inTs - b.inTs; });
     return sessions;
+  }
+
+  /* ---------------------------------------------------------------- sending */
+
+  var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  var sending = false;
+  var reviewSig = '';
+
+  function isOnline() {
+    return typeof navigator === 'undefined' || navigator.onLine !== false;
+  }
+
+  function shortDay(ts) {
+    var d = new Date(ts);
+    return d.getDate() + ' ' + MONTHS[d.getMonth()];
+  }
+
+  /* The last minute of the day a timestamp falls in. A session still open when
+     the date turns is closed here rather than at 24:00: the bridge refuses a
+     clock-out dated after its clock-in, so 23:59 is the one guess a review can
+     confirm without an edit. */
+  function lastMinuteOf(ts) {
+    var d = new Date(ts);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 0, 0).getTime();
+  }
+
+  /* One id per finished session, kept on the clock-out punch, so the same
+     session is never sent twice. Sessions finished before this update get one
+     the same way, on the first run after the page update. */
+  function stampSessionIds() {
+    var open = {};
+    var changed = false;
+    state.punches.slice().sort(function (a, b) { return a.ts - b.ts; }).forEach(function (p) {
+      if (p.type === 'in') {
+        if (!open[p.personId]) open[p.personId] = p;
+        return;
+      }
+      if (!open[p.personId]) return;
+      delete open[p.personId];
+      if (!p.sessionId) { p.sessionId = uid(); changed = true; }
+    });
+    if (changed) saveState();
+    return changed;
+  }
+
+  /* Anyone still clocked in when the date turns is closed at the end of that
+     day and held for review, not sent. Runs on load and every minute. */
+  function autoCloseOldSessions() {
+    var today = fmtDate(Date.now());
+    var open = {};
+    var added = 0;
+    state.punches.slice().sort(function (a, b) { return a.ts - b.ts; }).forEach(function (p) {
+      if (p.type === 'in') { if (!open[p.personId]) open[p.personId] = p; }
+      else if (open[p.personId]) delete open[p.personId];
+    });
+    Object.keys(open).forEach(function (personId) {
+      var start = open[personId];
+      if (fmtDate(start.ts) >= today) return;      /* today's session is still running */
+      var sessionId = uid();
+      state.punches.push({
+        id: uid(), personId: personId, name: start.name, ts: lastMinuteOf(start.ts),
+        type: 'out', sessionId: sessionId, auto: true
+      });
+      sync.held[sessionId] = true;
+      added++;
+    });
+    if (added) { saveState(); saveSync(); }
+    return added;
+  }
+
+  function allSessions() { return buildSessions(state.punches); }
+
+  function unsentSessions() {
+    return allSessions().filter(function (s) {
+      return s.outTs && s.sessionId && !sync.sent[s.sessionId];
+    });
+  }
+
+  function heldSessions() {
+    return unsentSessions().filter(function (s) { return !!sync.held[s.sessionId]; });
+  }
+
+  function readySessions() {
+    return unsentSessions().filter(function (s) { return !sync.held[s.sessionId]; });
+  }
+
+  function openSessions() {
+    return allSessions().filter(function (s) { return !s.outTs; });
+  }
+
+  function sentCount() { return Object.keys(sync.sent).length; }
+
+  function isSetUp() { return !!(sync.endpoint && sync.secret); }
+
+  /* The one line next to the version. A held session outranks a waiting one,
+     because it blocks the send. */
+  function syncStatus() {
+    if (!isSetUp()) return { key: 'setup', text: 'not set up' };
+    if (sync.lastError === 'auth') return { key: 'bad', text: 'auth error' };
+    if (!isOnline()) return { key: 'warn', text: 'offline' };
+    var held = heldSessions().length;
+    var ready = readySessions().length;
+    var open = openSessions().length;
+    if (held) return { key: 'warn', text: 'review ' + held };
+    if (ready) return { key: 'warn', text: 'waiting ' + ready };
+    if (open) return { key: 'quiet', text: 'open ' + open };
+    return { key: 'good', text: 'all sent' };
+  }
+
+  /* Seven days is too long for hours that live only on this tablet. */
+  function waitingLine() {
+    var ready = readySessions();
+    if (!ready.length) return '';
+    var oldest = ready[0].inTs;
+    if (Date.now() - oldest < 7 * 86400000) return '';
+    return ready.length + (ready.length === 1 ? ' session' : ' sessions') +
+      ' waiting since ' + shortDay(oldest) + '. Connect and send.';
+  }
+
+  function renderSync() {
+    var st = syncStatus();
+    if (syncStateEl) {
+      syncStateEl.textContent = st.text;
+      syncStateEl.className = 'sync ' + st.key;
+    }
+    if (syncCountEl) {
+      var bits = [readySessions().length + ' waiting'];
+      var held = heldSessions().length;
+      var open = openSessions().length;
+      if (held) bits.push(held + ' to review');
+      if (open) bits.push(open + ' clocked in');
+      bits.push(sentCount() + ' sent from this tablet');
+      syncCountEl.textContent = bits.join('  ·  ');
+    }
+    if (syncWarnEl) {
+      var warn = waitingLine();
+      syncWarnEl.hidden = !warn;
+      syncWarnEl.textContent = warn;
+    }
+    if (sendNowBtn) sendNowBtn.disabled = sending || !readySessions().length;
+    renderReview();
+  }
+
+  function renderReview() {
+    if (!reviewListEl) return;
+    var held = heldSessions();
+    var sig = held.map(function (s) { return s.sessionId; }).join(',');
+    if (sig === reviewSig) return;      /* keep what is typed in the boxes */
+    reviewSig = sig;
+    reviewListEl.innerHTML = '';
+    if (reviewEmptyEl) reviewEmptyEl.hidden = held.length > 0;
+
+    held.forEach(function (s) {
+      var row = document.createElement('div');
+      row.className = 'admin-person';
+
+      var name = document.createElement('span');
+      name.className = 'name';
+      name.appendChild(document.createTextNode(s.name + ' '));
+      var meta = document.createElement('span');
+      meta.className = 'stats';
+      meta.textContent = shortDay(s.inTs) + ' · ' + (s.auto ? 'auto-closed' : 'held') +
+        (sync.reasons[s.sessionId] ? ' · ' + sync.reasons[s.sessionId] : '');
+      name.appendChild(meta);
+      row.appendChild(name);
+
+      var inEl = document.createElement('input');
+      inEl.className = 'field';
+      inEl.type = 'time';
+      inEl.value = fmtTime(s.inTs);
+      inEl.setAttribute('aria-label', 'Clock in');
+      row.appendChild(inEl);
+
+      var outEl = document.createElement('input');
+      outEl.className = 'field';
+      outEl.type = 'time';
+      outEl.value = fmtTime(s.outTs);
+      outEl.setAttribute('aria-label', 'Clock out');
+      row.appendChild(outEl);
+
+      var okBtn = document.createElement('button');
+      okBtn.type = 'button';
+      okBtn.className = 'btn small';
+      okBtn.textContent = 'Confirm';
+      okBtn.addEventListener('click', function () {
+        var err = reviewFix(s, inEl.value, outEl.value);
+        if (err) { setMsg(syncMsgEl, err, true); return; }
+        setMsg(syncMsgEl, s.name + ' ' + shortDay(s.inTs) + ' confirmed.', false);
+        renderList();
+        renderSync();
+      });
+      row.appendChild(okBtn);
+
+      var noBtn = document.createElement('button');
+      noBtn.type = 'button';
+      noBtn.className = 'btn ghost small';
+      noBtn.textContent = 'Discard';
+      noBtn.addEventListener('click', function () {
+        reviewDiscard(s);
+        setMsg(syncMsgEl, s.name + ' ' + shortDay(s.inTs) + ' discarded.', false);
+      });
+      row.appendChild(noBtn);
+
+      reviewListEl.appendChild(row);
+    });
+  }
+
+  /* A time typed as HH:MM, on the day the session started. */
+  function timeOn(date, text) {
+    var m = /^(\d{1,2}):(\d{2})/.exec(String(text == null ? '' : text).trim());
+    if (!m) return null;
+    var h = Number(m[1]);
+    var min = Number(m[2]);
+    if (h > 23 || min > 59) return null;
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate(), h, min, 0, 0).getTime();
+  }
+
+  function reviewFix(session, inText, outText) {
+    var day = new Date(session.inTs);
+    var inTs = timeOn(day, inText);
+    var outTs = timeOn(day, outText);
+    if (inTs === null || outTs === null) return 'Type both times as HH:MM.';
+    if (outTs <= inTs) return 'The clock-out must be after the clock-in.';
+
+    var changed = false;
+    state.punches.forEach(function (p) {
+      if (p.id === session.inPunchId && p.ts !== inTs) { p.ts = inTs; changed = true; }
+      if (p.id === session.outPunchId && p.ts !== outTs) { p.ts = outTs; changed = true; }
+    });
+    if (changed) sync.edited[session.sessionId] = true;
+    delete sync.held[session.sessionId];
+    delete sync.reasons[session.sessionId];
+    saveState();
+    saveSync();
+    return '';
+  }
+
+  function reviewDiscard(session) {
+    state.punches = state.punches.filter(function (p) {
+      return p.id !== session.inPunchId && p.id !== session.outPunchId;
+    });
+    delete sync.held[session.sessionId];
+    delete sync.reasons[session.sessionId];
+    saveState();
+    saveSync();
+    renderList();
+    renderSync();
+  }
+
+  /* Marks that outlive their punches are dropped, so a discarded session does
+     not come back as a ghost. */
+  function pruneSyncMarks() {
+    var live = {};
+    allSessions().forEach(function (s) { if (s.sessionId) live[s.sessionId] = true; });
+    var changed = false;
+    ['sent', 'held', 'edited', 'reasons'].forEach(function (key) {
+      Object.keys(sync[key]).forEach(function (id) {
+        if (!live[id]) { delete sync[key][id]; changed = true; }
+      });
+    });
+    if (changed) saveSync();
+    return changed;
+  }
+
+  function noteFor(session) {
+    var notes = [];
+    if (session.auto) notes.push('auto-closed');
+    if (sync.edited[session.sessionId]) notes.push('edited');
+    return notes.join(', ');
+  }
+
+  function errorText(code) {
+    if (code === 'auth') return 'Auth error. The secret is wrong or has changed. Set it in Settings, then press Send now.';
+    if (code === 'net') return 'No reply from the script. Check the connection and press Send now. Nothing is lost.';
+    if (code === 'tooMany') return 'Too many sessions in one go. Press Send now again to send the rest.';
+    if (code === 'busy') return 'The script is busy with another tablet. Press Send now in a moment.';
+    return 'The script refused the send (' + code + '). Nothing is lost. Press Send now to try again.';
+  }
+
+  /* Apps Script answers a POST with a redirect, and fetch follows it, so the
+     reply arrives as JSON. 15 seconds, then give up: a quiet first call takes
+     about 4, and a slow one should not look like a failure. */
+  function postJson(url, body) {
+    var controller = typeof AbortController === 'function' ? new AbortController() : null;
+    var timer = setTimeout(function () { if (controller) controller.abort(); }, SEND_TIMEOUT);
+    var opts = {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(body),
+      redirect: 'follow'
+    };
+    if (controller) opts.signal = controller.signal;
+    return fetch(url, opts)
+      .then(function (res) { return res.text(); })
+      .then(function (text) {
+        clearTimeout(timer);
+        try { return JSON.parse(text); } catch (e) { return { ok: false, error: 'script' }; }
+      })
+      .catch(function () {
+        clearTimeout(timer);
+        return { ok: false, error: 'net' };
+      });
+  }
+
+  function getJson(url) {
+    var controller = typeof AbortController === 'function' ? new AbortController() : null;
+    var timer = setTimeout(function () { if (controller) controller.abort(); }, SEND_TIMEOUT);
+    var opts = { method: 'GET', redirect: 'follow' };
+    if (controller) opts.signal = controller.signal;
+    return fetch(url, opts)
+      .then(function (res) { return res.text(); })
+      .then(function (text) {
+        clearTimeout(timer);
+        try { return JSON.parse(text); } catch (e) { return { ok: false, error: 'script' }; }
+      })
+      .catch(function () {
+        clearTimeout(timer);
+        return { ok: false, error: 'net' };
+      });
+  }
+
+  function sendNow(manual) {
+    if (sending) return;
+    if (!isSetUp()) {
+      if (manual) setMsg(syncMsgEl, 'Set the endpoint and the secret in Settings first.', true);
+      return;
+    }
+    var held = heldSessions();
+    var ready = readySessions();
+    if (held.length) {
+      var names = held.slice(0, 3).map(function (s) { return s.name + ', ' + shortDay(s.inTs); });
+      setMsg(syncMsgEl, 'Cannot send. Needs review: ' + names.join('; ') +
+        (held.length > 3 ? ' and ' + (held.length - 3) + ' more' : '') + '.', true);
+      renderSync();
+      return;
+    }
+    if (!ready.length) {
+      if (manual) setMsg(syncMsgEl, 'Nothing to send. All the hours are in.', false);
+      return;
+    }
+    if (!isOnline()) {
+      if (manual) setMsg(syncMsgEl, 'Offline. Connect the tablet, then press Send now.', true);
+      return;
+    }
+
+    sending = true;
+    renderSync();
+    setMsg(syncMsgEl, 'Sending ' + ready.length + (ready.length === 1 ? ' session' : ' sessions') + '. Please wait.', false);
+
+    var payload = {
+      secret: sync.secret,
+      entries: ready.map(function (s) {
+        return {
+          sessionId: s.sessionId,
+          name: s.name,
+          in: new Date(s.inTs).toISOString(),
+          out: new Date(s.outTs).toISOString(),
+          device: sync.device || sync.deviceId,
+          note: noteFor(s)
+        };
+      })
+    };
+
+    return postJson(sync.endpoint, payload).then(function (reply) {
+      sending = false;
+
+      if (!reply || !reply.ok) {
+        sync.lastError = (reply && reply.error) || 'script';
+        saveSync();
+        renderSync();
+        setMsg(syncMsgEl, errorText(sync.lastError), true);
+        return;
+      }
+
+      var at = Date.now();
+      var count = 0;
+      (reply.accepted || []).forEach(function (id) {
+        if (!sync.sent[id]) { sync.sent[id] = at; count++; }
+        delete sync.held[id];
+        delete sync.reasons[id];
+      });
+      sync.lastSendAt = at;
+      sync.lastSendCount = count;
+      sync.lastError = '';
+
+      /* A refused session comes back into Review with its reason, so it can be
+         corrected rather than retried for ever. */
+      (reply.rejected || []).forEach(function (r) {
+        if (!r || !r.id) return;
+        sync.held[r.id] = true;
+        sync.reasons[r.id] = r.reason || 'refused';
+      });
+
+      saveSync();
+      renderList();
+      renderSync();
+
+      var text = count + (count === 1 ? ' session sent at ' : ' sessions sent at ') + fmtTime(at) + '.';
+      var unknown = Array.isArray(reply.unknownNames) ? reply.unknownNames : [];
+      if (unknown.length) {
+        text += ' ' + unknown.length + (unknown.length === 1 ? ' name is' : ' names are') +
+          ' not in Overview: ' + unknown.join(', ') + '. Fix them in Entries.';
+      }
+      var refused = (reply.rejected || []).length;
+      if (refused) text += ' ' + refused + (refused === 1 ? ' not sent.' : ' not sent.') + ' See Review.';
+      setMsg(syncMsgEl, text, false);
+      if (overlayEl.hidden) showToast(text, null);
+    });
+  }
+
+  /* Runs on load and once a minute: closes stale sessions, then draws. */
+  function syncTick() {
+    stampSessionIds();
+    autoCloseOldSessions();
+    pruneSyncMarks();
+    renderSync();
+  }
+
+  function autoSend() {
+    if (sending || !isSetUp() || !isOnline()) return;
+    if (heldSessions().length) return;      /* blocked, and named in the Send card */
+    if (!readySessions().length) return;
+    sendNow(false);
+  }
+
+  function fillSettings() {
+    if (syncEndpointEl) syncEndpointEl.value = sync.endpoint;
+    if (syncSecretEl) syncSecretEl.value = sync.secret;
+    if (syncDeviceEl) syncDeviceEl.value = sync.device;
+  }
+
+  function saveSettings() {
+    var endpoint = String(syncEndpointEl.value || '').trim();
+    var secret = String(syncSecretEl.value || '').trim();
+    var device = String(syncDeviceEl.value || '').trim().slice(0, 40);
+
+    if (endpoint && !/^https:\/\/script\.google\.com\/macros\/s\/[^\/]+\/exec$/.test(endpoint)) {
+      setMsg(syncSetMsgEl, 'That does not look like a web app URL. It ends in /exec and starts https://script.google.com/macros/s/', true);
+      return;
+    }
+    if (endpoint && !secret) {
+      setMsg(syncSetMsgEl, 'The endpoint needs the secret too.', true);
+      return;
+    }
+
+    sync.endpoint = endpoint;
+    sync.secret = secret;
+    sync.device = device || sync.deviceId;
+    sync.lastError = '';
+    saveSync();
+    fillSettings();
+    setMsg(syncSetMsgEl, endpoint ? 'Saved. Tablet name: ' + sync.device + '.' : 'Saved. No endpoint, so nothing will send.', false);
+    renderSync();
+    if (endpoint) autoSend();
+  }
+
+  function testConnection() {
+    var endpoint = String(syncEndpointEl.value || '').trim() || sync.endpoint;
+    if (!endpoint) {
+      setMsg(syncSetMsgEl, 'Add the endpoint first.', true);
+      return;
+    }
+    setMsg(syncSetMsgEl, 'Trying the connection.', false);
+    getJson(endpoint).then(function (reply) {
+      if (reply && reply.ok) {
+        setMsg(syncSetMsgEl, 'Connected. Script version ' + (reply.version || 'unknown') + ', ' +
+          fmtTime(Date.parse(reply.time) || Date.now()) + '.', false);
+      } else if (reply && reply.error === 'net') {
+        setMsg(syncSetMsgEl, 'No reply. Check the endpoint and the connection.', true);
+      } else {
+        setMsg(syncSetMsgEl, 'The script answered with ' + ((reply && reply.error) || 'something odd') + '.', true);
+      }
+    });
   }
 
   /* Local midnight, n days back. Built from date parts so DST cannot skew it. */
@@ -1417,6 +2038,9 @@
   document.getElementById('wipeBtn').addEventListener('click', wipePunches);
   document.getElementById('exportXlsx').addEventListener('click', exportXlsx);
   document.getElementById('exportCsv').addEventListener('click', exportCsv);
+  document.getElementById('sendNowBtn').addEventListener('click', function () { sendNow(true); });
+  document.getElementById('syncSaveBtn').addEventListener('click', saveSettings);
+  document.getElementById('syncTestBtn').addEventListener('click', testConnection);
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') return;
     if (!addOverlayEl.hidden) closeAddDialog();
@@ -1430,6 +2054,19 @@
   tickClock();
   setInterval(tickClock, 1000);
   renderList();
+
+  /* The bridge. Close anything left clocked in from an earlier day, give the
+     finished sessions their ids, then draw the send state and try a send. */
+  syncTick();
+  autoSend();
+  if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('online', autoSend);
+  if (typeof setInterval === 'function') {
+    setInterval(function () {
+      if (sending) return;
+      syncTick();
+      autoSend();
+    }, 60000);
+  }
 
   if (state.people.length === 0) showToast('No names yet. Use Add new name to start the list.', null);
 
@@ -1470,7 +2107,19 @@
       var out = exportRows(period || 'all');
       state.punches = saved;
       return out;
-    }
+    },
+    sessions: allSessions,
+    ready: readySessions,
+    held: heldSessions,
+    status: syncStatus,
+    syncData: function () { return sync; },
+    send: sendNow,
+    syncTick: syncTick,
+    closeOld: autoCloseOldSessions,
+    stampIds: stampSessionIds,
+    lastMinuteOf: lastMinuteOf,
+    saveSettings: saveSettings,
+    fillSettings: fillSettings
   };
 })();
 </script>
