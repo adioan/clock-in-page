@@ -1,0 +1,40 @@
+
+Clock-in bridge, phase 0
+Does the reply come back?
+
+One question, three buttons. If the first test comes back clean, the bridge is safe to build.
+
+Open this page on the tablet, over the hotspot, at the same address as the app.
+Step 1
+Paste the web app URL
+
+The one ending in /exec, from Deploy, Manage deployments. It stays on this tablet only.
+Save
+
+origin null | online | no service worker yet
+Step 2
+Run the tests
+
+Preflight means: the browser asks the server for permission before it sends a POST with a JSON type. Apps Script never answers that question, so we send the body as plain text instead.
+Send test POST
+Health check
+JSON type (should fail)
+
+The first button is the one that matters. Press it twice.
+Result
+What came back
+
+Nothing yet.
+
+Copy log
+Clear
+Step 3
+How to read it
+You see	It means
+ok true, spike-1, a time	Go. The page can send and read the reply.
+Failed to fetch or a type error	No. The browser threw the reply away. Stop and rethink.
+401 or 403, or an HTML login page	Access is not set to Anyone. Fix the deployment.
+The JSON type test fails	Normal and expected. It shows why we use plain text.
+
+Tell Adi the result of the first button, twice, and the sheet time zone from the health check. Then archive the deployment and delete this file.
+Spike only. Saves nothing.
